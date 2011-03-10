@@ -1,0 +1,33 @@
+---
+abstract: 'backups imap mail'
+author:
+  - 'Alex Muntada <alexm@cpan.org>'
+build_requires:
+  English: 0
+  Test::More: 0
+configure_requires:
+  ExtUtils::MakeMaker: 6.31
+dynamic_config: 0
+generated_by: 'Dist::Zilla version 4.200004, CPAN::Meta::Converter version 2.110580'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: App-backimap
+requires:
+  Carp: 0
+  Exporter: 0
+  File::HomeDir: 0
+  File::Path: 0
+  File::Spec::Functions: 0
+  Getopt::Long: 0
+  Git::Wrapper: 0
+  IO::Prompt: 0
+  IO::Socket::SSL: 0
+  JSON::Any: 0
+  Mail::IMAPClient: 0
+  Pod::Usage: 0
+  URI: 0
+  URI::imap: 0
+  URI::imaps: 0
+version: 0.00_04

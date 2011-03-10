@@ -1,0 +1,17 @@
+Changes
+LICENSE
+MANIFEST
+META.yml
+Makefile.PL
+README
+README.md
+bin/backimap
+dist.ini
+lib/App/backimap.pm
+lib/App/backimap/Utils.pm
+t/author-critic.t
+t/perlcriticrc
+t/release-cpan-changes.t
+t/release-pod-coverage.t
+t/release-pod-syntax.t
+t/utils/uri.t
