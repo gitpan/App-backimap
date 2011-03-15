@@ -12,7 +12,6 @@ my %WriteMakefileArgs = (
   'ABSTRACT' => 'backups imap mail',
   'AUTHOR' => 'Alex Muntada <alexm@cpan.org>',
   'BUILD_REQUIRES' => {
-    'English' => '0',
     'Test::More' => '0'
   },
   'CONFIGURE_REQUIRES' => {
@@ -26,6 +25,7 @@ my %WriteMakefileArgs = (
   'NAME' => 'App::backimap',
   'PREREQ_PM' => {
     'Carp' => '0',
+    'English' => '0',
     'Exporter' => '0',
     'File::HomeDir' => '0',
     'File::Path' => '0',
@@ -34,14 +34,15 @@ my %WriteMakefileArgs = (
     'Git::Wrapper' => '0',
     'IO::Prompt' => '0',
     'IO::Socket::SSL' => '0',
-    'JSON::Any' => '0',
     'Mail::IMAPClient' => '0',
+    'Moose' => '0',
+    'MooseX::Storage' => '0',
     'Pod::Usage' => '0',
     'URI' => '0',
     'URI::imap' => '0',
     'URI::imaps' => '0'
   },
-  'VERSION' => '0.00_04',
+  'VERSION' => '0.00_05',
   'test' => {
     'TESTS' => 't/*.t t/utils/*.t'
   }

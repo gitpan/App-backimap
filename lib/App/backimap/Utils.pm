@@ -50,7 +50,7 @@ App::backimap::Utils - backimap utilities
 
 =head1 VERSION
 
-version 0.00_04
+version 0.00_05
 
 =head1 FUNCTIONS
 

@@ -3,7 +3,6 @@ abstract: 'backups imap mail'
 author:
   - 'Alex Muntada <alexm@cpan.org>'
 build_requires:
-  English: 0
   Test::More: 0
 configure_requires:
   ExtUtils::MakeMaker: 6.31
@@ -16,6 +15,7 @@ meta-spec:
 name: App-backimap
 requires:
   Carp: 0
+  English: 0
   Exporter: 0
   File::HomeDir: 0
   File::Path: 0
@@ -24,10 +24,13 @@ requires:
   Git::Wrapper: 0
   IO::Prompt: 0
   IO::Socket::SSL: 0
-  JSON::Any: 0
   Mail::IMAPClient: 0
+  Moose: 0
+  MooseX::Storage: 0
   Pod::Usage: 0
   URI: 0
   URI::imap: 0
   URI::imaps: 0
-version: 0.00_04
+resources:
+  repository: git://github.com/alexm/App-backimap.git
+version: 0.00_05
