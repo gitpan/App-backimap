@@ -2,7 +2,7 @@
 use strict;
 use warnings;
 
-
+BEGIN { require 5.010; }
 
 use ExtUtils::MakeMaker 6.31;
 
@@ -26,25 +26,26 @@ my %WriteMakefileArgs = (
   'PREREQ_PM' => {
     'Carp' => '0',
     'English' => '0',
-    'Exporter' => '0',
     'File::HomeDir' => '0',
     'File::Path' => '0',
     'File::Spec::Functions' => '0',
+    'File::chdir' => '0',
     'Getopt::Long' => '0',
     'Git::Wrapper' => '0',
     'IO::Prompt' => '0',
     'IO::Socket::SSL' => '0',
     'Mail::IMAPClient' => '0',
     'Moose' => '0',
+    'Moose::Util::TypeConstraints' => '0',
     'MooseX::Storage' => '0',
+    'Path::Class::Dir' => '0',
+    'Path::Class::File' => '0',
     'Pod::Usage' => '0',
-    'URI' => '0',
-    'URI::imap' => '0',
-    'URI::imaps' => '0'
+    'URI' => '0'
   },
-  'VERSION' => '0.00_05',
+  'VERSION' => '0.00_06',
   'test' => {
-    'TESTS' => 't/*.t t/utils/*.t'
+    'TESTS' => 't/*.t'
   }
 );
 
