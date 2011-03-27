@@ -11,15 +11,18 @@ use App::backimap::Status::Folder;
 use App::backimap::IMAP;
 use App::backimap::Storage;
 
+
 has status => (
     is => 'rw',
     isa => 'App::backimap::Status',
 );
 
+
 has imap => (
     is => 'rw',
     isa => 'App::backimap::IMAP',
 );
+
 
 has storage => (
     is => 'rw',
@@ -29,11 +32,7 @@ has storage => (
 use Getopt::Long         qw( GetOptionsFromArray );
 use Pod::Usage;
 use URI;
-use File::Spec::Functions qw( catfile );
-use File::Path            qw( mkpath );
-use Git::Wrapper;
-use File::HomeDir;
-use Carp;
+use Path::Class qw( file );
 
 
 sub new {
@@ -42,8 +41,9 @@ sub new {
     my %opt = (
         help    => 0,
         verbose => 0,
-        dir     => catfile( File::HomeDir->my_home, ".backimap" ),
+        dir     => undef,
         init    => 0,
+        clean   => 0,
     );
 
     GetOptionsFromArray(
@@ -51,9 +51,10 @@ sub new {
         \%opt,
 
         'help|h',
-        'verbose|v',
+        'verbose|v+',
         'dir=s',
-        'init',
+        'init!',
+        'clean!',
     )
         or __PACKAGE__->usage();
 
@@ -66,54 +67,23 @@ sub new {
 sub setup {
     my ( $self, $str ) = @_;
 
-    my $uri = URI->new($str);
-
-    $self->imap(
-        App::backimap::IMAP->new( uri => $uri )
+    my $storage = App::backimap::Storage->new(
+        dir   => $self->{'dir'},
+        init  => $self->{'init'},
+        clean => $self->{'clean'},
     );
+    $self->storage($storage);
 
-    $self->status(
-        App::backimap::Status->new(
-            server    => $self->imap->host,
-            user      => $self->imap->user,
-        )
+    my $uri  = URI->new($str);
+    my $imap = App::backimap::IMAP->new( uri => $uri );
+    $self->imap($imap);
+
+    my $status = App::backimap::Status->new(
+        storage => $storage,
+        server  => $imap->host,
+        user    => $imap->user,
     );
-
-    my $dir = $self->{'dir'};
-    my $filename = catfile( $dir, "backimap.json" );
-
-    $self->storage(
-        App::backimap::Storage->new(
-            dir => $dir,
-            init => $self->{'init'},
-        ),
-    );
-
-    # save initial status
-    $self->save()
-        if $self->{'init'};
-
-    my $status = App::backimap::Status->load($filename);
-
-    die "imap details do not match with previous status\n"
-        if $status->user ne $self->status->user ||
-            $status->server ne $self->status->server;
-
-    $self->status->folder( $status->folder )
-        if $status->folder;
-}
-
-
-sub save {
-    my ($self) = @_;
-
-    my $git = $self->{'git'};
-
-    croak "must define status first"
-        unless defined $self->status;
-
-    $self->status->store( catfile( $self->{'dir'}, "backimap.json" ) );
-    $self->storage->put("save status");
+    $self->status($status);
 }
 
 
@@ -121,11 +91,9 @@ sub backup {
     my ($self) = @_;
 
     my $imap = $self->imap->client;
-
-    my $path = $self->imap->path;
-    $path =~ s#^/+##;
-
-    my @folder_list = $path ne '' ? $path : $imap->folders;
+    my @folder_list = $self->imap->path ne ''
+                    ? $self->imap->path
+                    : $imap->folders;
 
     print STDERR "Examining folders...\n"
         if $self->{'verbose'};
@@ -136,31 +104,43 @@ sub backup {
 
         my $unseen = $imap->unseen_count($folder);
 
-        if ( $self->status->folder ) {
+        if ( $self->status->folder && exists $self->status->folder->{$folder} ) {
             $self->status->folder->{$folder}->count($count);
             $self->status->folder->{$folder}->unseen($unseen);
         }
         else {
-            my %status = (
-                $folder => App::backimap::Status::Folder->new(
-                    count => $count,
-                    unseen => $unseen,
-                ),
+            my $status = App::backimap::Status::Folder->new(
+                count => $count,
+                unseen => $unseen,
             );
 
-            $self->status->folder(\%status);
+            $self->status->folder({ $folder => $status });
         }
 
         print STDERR " * $folder ($unseen/$count)"
             if $self->{'verbose'};
 
+        # list of potential files to purge
+        my %purge = map { $_ => 1 } $self->storage->list($folder);
+
         $imap->examine($folder);
         for my $msg ( $imap->messages ) {
-            my $file = catfile( $folder, $msg );
-            next if $self->storage->get($file);
+            # do not purge if still present in server
+            delete $purge{$msg};
+
+            my $file = file( $folder, $msg );
+            next if $self->storage->find($file);
 
             my $fetch = $imap->fetch( $msg, 'RFC822' );
-            $self->storage->put( "save message $file", $file => $fetch->[2] );
+            $self->storage->put( "$file" => $fetch->[2] );
+        }
+
+        my @purge = map { file( $folder, $_ ) } keys %purge;
+        if (@purge) {
+            print STDERR " (@purge)"
+                if $self->{'verbose'};
+
+            $self->storage->delete(@purge);
         }
 
         print STDERR "\n"
@@ -176,11 +156,16 @@ sub run {
     $self->usage unless @args == 1;
 
     $self->setup(@args);
-    $self->backup();
-    $self->save();
 
-    my $spent = ( time - $^T ) / 60;
-    printf STDERR "Backup took %.2f minutes.\n", $spent
+    my $start = time();
+    $self->backup();
+    my $spent = ( time() - $start ) / 60;
+    my $message = sprintf "backup took %.2f minutes", $spent;
+
+    $self->status->save();
+    $self->storage->commit($message);
+
+    printf STDERR "$message\n"
         if $self->{'verbose'};
 }
 
@@ -202,12 +187,26 @@ App::backimap - backups imap mail
 
 =head1 VERSION
 
-version 0.00_06
+version 0.00_07
 
 =head1 SYNOPSIS
 
     use App::backimap;
     App::backimap->new(@ARGV)->run();
+
+=head1 ATTRIBUTES
+
+=head2 status
+
+Application persistent status.
+
+=head2 imap
+
+An object to encapsulate IMAP details.
+
+=head2 storage
+
+Storage backend where files and messages are stored.
 
 =head1 METHODS
 
@@ -217,17 +216,11 @@ Creates a new program instance with command line arguments.
 
 =head2 setup
 
-Setups configuration and prompts for password if needed.
-Then opens Git repository (initialize if asked) and
-load previous status.
-
-=head2 save
-
-Save current status into Git repository.
+Setups storage, IMAP connection and backimap status.
 
 =head2 backup
 
-Perform IMAP folder backup recursively into Git repository.
+Perform IMAP folder backup recursively.
 
 =head2 run
 

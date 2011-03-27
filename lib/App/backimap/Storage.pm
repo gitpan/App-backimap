@@ -3,22 +3,36 @@ package App::backimap::Storage;
 
 use Moose;
 use Moose::Util::TypeConstraints;
-use Path::Class::Dir();
-use Path::Class::File();
-use File::chdir;
+use MooseX::Types::Path::Class;
+use File::HomeDir;
+use Git::Wrapper;
 
 
 has dir => (
     is => 'ro',
-    isa => 'Str',
+    isa => 'Path::Class::Dir',
     required => 1,
+    coerce => 1,
+    default => sub { File::HomeDir->my_home . ".backimap" },
 );
+
 
 has init => (
     is => 'ro',
     isa => 'Bool',
     default => 0,
 );
+
+
+has clean => (
+    is => 'ro',
+    isa => 'Bool',
+    default => 0,
+);
+
+sub _git_reset {
+    shift->reset( { hard => 1 } );
+}
 
 subtype 'Git::Wrapper' => as 'Object' => where { $_->isa('Git::Wrapper') };
 
@@ -29,7 +43,7 @@ has _git => (
     default => sub {
         my $self = shift;
 
-        my $dir = Path::Class::Dir->new( $self->dir );
+        my $dir = $self->dir;
         my $git = Git::Wrapper->new("$dir");
 
         if ( $self->init ) {
@@ -40,27 +54,66 @@ has _git => (
             $git->init();
         }
 
+        if ( $git->status->is_dirty ) {
+            die "directory $dir is dirty, consider --clean option\n"
+                unless $self->clean;
+
+            _git_reset($git);
+
+            if ( $git->status->is_dirty ) {
+                my @unknown = map { $_->from } $git->status->get("unknown");
+                die "directory $dir still has unknown files: @unknown\n";
+            }
+        }
+
         return $git;
     },
 );
+
+
+sub find {
+    my $self = shift;
+
+    my @found = grep { -f $self->dir->file($_) } @_;
+    return @found;
+}
+
+
+sub list {
+    my $self = shift;
+    my ($dir) = @_;
+
+    $dir = $self->dir->subdir($dir);
+    return unless -d $dir;
+
+    my @list = grep !( $_->is_dir() ), $dir->children();
+
+    @list = map { $_->relative($dir) } @list;
+    return @list;
+}
 
 
 sub get {
     my $self = shift;
     my ($file) = @_;
 
-    return -f Path::Class::File->new( $self->dir, $file );
+    return $self->dir->file($file)->slurp();
 }
 
 
 sub put {
     my $self = shift;
-    my ( $change, %files ) = @_;
+    my %files = @_;
 
-    local $CWD = $self->dir;
+    # This makes sure that git repo is properly initialized
+    # before any new file is added. Otherwise it would fail
+    # because repo would be dirty.
+    my $git = $self->_git;
+
+    my $dir = $self->dir;
 
     for my $filename ( keys %files ) {
-        my $filepath = Path::Class::File->new( $self->dir, $filename );
+        my $filepath = $dir->file($filename);
         $filepath->dir->mkpath()
             unless -d $filepath->dir;
 
@@ -70,17 +123,41 @@ sub put {
         $file->print( $files{$filename} );
         $file->close();
 
-        $self->_git->add($filename);
+        $git->add($filename);
     }
+}
 
-    if ( keys %files ) {
-        $self->_git->commit( { message => $change }, keys %files );
+
+sub delete {
+    my $self = shift;
+
+    my @files = map { $self->dir->file($_)->stringify() } @_;
+
+    $self->_git->rm(@files)
+        if @files;
+}
+
+
+sub commit {
+    my $self = shift;
+    my $change = shift;
+
+    if (@_) {
+        $self->_git->commit( { message => $change }, @_ );
     }
     else {
-        $self->_git->add( $self->dir );
         $self->_git->commit( { message => $change, all => 1 } );
     }
 }
+
+
+sub reset {
+    _git_reset( shift->_git );
+}
+
+
+sub pack   { }
+sub unpack { }
 
 1;
 
@@ -93,23 +170,59 @@ App::backimap::Storage - manages backimap storage
 
 =head1 VERSION
 
-version 0.00_06
+version 0.00_07
 
 =head1 ATTRIBUTES
 
 =head2 dir
 
-Sets pathname to the storage.
+Sets pathname to the storage (defaults to ~/.backimap).
+
+=head2 init
+
+Tells that storage must be initialized.
+
+=head2 clean
+
+Tells that storage must be cleaned if dirty.
 
 =head1 METHODS
+
+=head2 find( $file, ... )
+
+Returns a list of files that are found in storage.
+
+=head2 list( $dir )
+
+Returns a list of files in a directory from storage.
 
 =head2 get( $file )
 
 Retrieves file from storage.
 
-=head2 put( $change, $file => $content, ... )
+=head2 put( $file => $content, ... )
 
 Adds files to storage with a text describing the change.
+
+=head2 delete( $file, ... )
+
+Removes files from storage.
+
+=head2 commit($change, [$file] ...)
+
+Commits pending storage actions with a description of change.
+If a list of files is provided, only those will be committed.
+Otherwise all pending actions will be performed.
+
+=head2 reset
+
+Rolls back any storage actions that were performed but not committed.
+Returns storage back to last committed status.
+
+=for Pod::Coverage pack unpack
+
+Required methods in status for MooseX::Storage that don't perform any action
+since the storage backend does not support serialization.
 
 =head1 AUTHOR
 

@@ -72,7 +72,14 @@ has path => (
     is => 'ro',
     isa => 'Str',
     lazy => 1,
-    default => sub { shift->uri->path },
+    default => sub {
+        my $self = shift;
+
+        my $path = $self->uri->path;
+        $path =~ s#^/+##;
+
+        return $path;
+    },
 );
 
 
@@ -123,7 +130,7 @@ App::backimap::IMAP - manages IMAP connections
 
 =head1 VERSION
 
-version 0.00_06
+version 0.00_07
 
 =head1 ATTRIBUTES
 

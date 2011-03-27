@@ -5,11 +5,13 @@ use Moose;
 use MooseX::Storage;
 with Storage;
 
+
 has count => (
     is => 'rw',
     isa => 'Int',
     required => 1,
 );
+
 
 has unseen => (
     is => 'rw',
@@ -28,7 +30,17 @@ App::backimap::Status::Folder - backimap folder status
 
 =head1 VERSION
 
-version 0.00_06
+version 0.00_07
+
+=head1 ATTRIBUTES
+
+=head2 count
+
+Total number of messages in a folder.
+
+=head2 unseen
+
+Number of unseen messages in a folder.
 
 =head1 AUTHOR
 

@@ -14,12 +14,8 @@ meta-spec:
   version: 1.4
 name: App-backimap
 requires:
-  Carp: 0
   English: 0
   File::HomeDir: 0
-  File::Path: 0
-  File::Spec::Functions: 0
-  File::chdir: 0
   Getopt::Long: 0
   Git::Wrapper: 0
   IO::Prompt: 0
@@ -28,11 +24,11 @@ requires:
   Moose: 0
   Moose::Util::TypeConstraints: 0
   MooseX::Storage: 0
-  Path::Class::Dir: 0
-  Path::Class::File: 0
+  MooseX::Types::Path::Class: 0
+  Path::Class: 0
   Pod::Usage: 0
   URI: 0
   perl: 5.010
 resources:
   repository: git://github.com/alexm/App-backimap.git
-version: 0.00_06
+version: 0.00_07
