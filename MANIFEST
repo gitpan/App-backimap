@@ -5,6 +5,7 @@ META.yml
 Makefile.PL
 README
 README.md
+TODO
 bin/backimap
 dist.ini
 lib/App/backimap.pm

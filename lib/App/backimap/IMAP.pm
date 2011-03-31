@@ -5,8 +5,9 @@ use Moose;
 use Moose::Util::TypeConstraints;
 use IO::Prompt();
 use Mail::IMAPClient();
-
-use 5.010;
+use Encode::IMAPUTF7();
+use Encode();
+use URI::Escape();
 
 
 subtype 'URI::imap'  => as Object => where { $_->isa('URI::imap')  };
@@ -72,15 +73,19 @@ has path => (
     is => 'ro',
     isa => 'Str',
     lazy => 1,
-    default => sub {
-        my $self = shift;
-
-        my $path = $self->uri->path;
-        $path =~ s#^/+##;
-
-        return $path;
-    },
+    builder => '_build_path',
 );
+
+sub _build_path {
+    my $self = shift;
+
+    my $uri_path = URI::Escape::uri_unescape( $self->uri->path );
+    my $utf8_path = Encode::decode( 'utf-8', $uri_path );
+    my $imap_path = Encode::encode( 'imap-utf-7', $utf8_path );
+    $imap_path =~ s#^/+##;
+
+    return $imap_path;
+}
 
 
 subtype 'App::backimap::Types::Authenticated'
@@ -130,7 +135,7 @@ App::backimap::IMAP - manages IMAP connections
 
 =head1 VERSION
 
-version 0.00_07
+version 0.00_08
 
 =head1 ATTRIBUTES
 

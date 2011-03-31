@@ -2,7 +2,7 @@
 use strict;
 use warnings;
 
-BEGIN { require 5.010; }
+
 
 use ExtUtils::MakeMaker 6.31;
 
@@ -24,6 +24,8 @@ my %WriteMakefileArgs = (
   'LICENSE' => 'perl',
   'NAME' => 'App::backimap',
   'PREREQ_PM' => {
+    'Encode' => '0',
+    'Encode::IMAPUTF7' => '0',
     'English' => '0',
     'File::HomeDir' => '0',
     'Getopt::Long' => '0',
@@ -37,9 +39,11 @@ my %WriteMakefileArgs = (
     'MooseX::Types::Path::Class' => '0',
     'Path::Class' => '0',
     'Pod::Usage' => '0',
-    'URI' => '0'
+    'Try::Tiny' => '0',
+    'URI' => '0',
+    'URI::Escape' => '0'
   },
-  'VERSION' => '0.00_07',
+  'VERSION' => '0.00_08',
   'test' => {
     'TESTS' => 't/*.t'
   }

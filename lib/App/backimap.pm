@@ -10,6 +10,9 @@ use App::backimap::Status;
 use App::backimap::Status::Folder;
 use App::backimap::IMAP;
 use App::backimap::Storage;
+use Try::Tiny;
+use Encode::IMAPUTF7();
+use Encode();
 
 
 has status => (
@@ -90,6 +93,9 @@ sub setup {
 sub backup {
     my ($self) = @_;
 
+    my $storage = $self->storage;
+    my $status_of = $self->status->folder;
+
     my $imap = $self->imap->client;
     my @folder_list = $self->imap->path ne ''
                     ? $self->imap->path
@@ -98,53 +104,62 @@ sub backup {
     print STDERR "Examining folders...\n"
         if $self->{'verbose'};
 
-    for my $folder (@folder_list) {
-        my $count  = $imap->message_count($folder);
-        next unless defined $count;
-
-        my $unseen = $imap->unseen_count($folder);
-
-        if ( $self->status->folder && exists $self->status->folder->{$folder} ) {
-            $self->status->folder->{$folder}->count($count);
-            $self->status->folder->{$folder}->unseen($unseen);
-        }
-        else {
-            my $status = App::backimap::Status::Folder->new(
-                count => $count,
-                unseen => $unseen,
-            );
-
-            $self->status->folder({ $folder => $status });
-        }
-
-        print STDERR " * $folder ($unseen/$count)"
-            if $self->{'verbose'};
-
-        # list of potential files to purge
-        my %purge = map { $_ => 1 } $self->storage->list($folder);
-
-        $imap->examine($folder);
-        for my $msg ( $imap->messages ) {
-            # do not purge if still present in server
-            delete $purge{$msg};
-
-            my $file = file( $folder, $msg );
-            next if $self->storage->find($file);
-
-            my $fetch = $imap->fetch( $msg, 'RFC822' );
-            $self->storage->put( "$file" => $fetch->[2] );
-        }
-
-        my @purge = map { file( $folder, $_ ) } keys %purge;
-        if (@purge) {
-            print STDERR " (@purge)"
+    try {
+        for my $folder (@folder_list) {
+            my $folder_name = Encode::encode( 'utf-8', Encode::decode( 'imap-utf-7', $folder ) );
+            my $count  = $imap->message_count($folder);
+            next unless defined $count;
+    
+            my $unseen = $imap->unseen_count($folder);
+    
+            if ( $status_of && exists $status_of->{$folder_name} ) {
+                $status_of->{$folder_name}->count($count);
+                $status_of->{$folder_name}->unseen($unseen);
+            }
+            else {
+                my $new_status = App::backimap::Status::Folder->new(
+                    count => $count,
+                    unseen => $unseen,
+                );
+    
+                $self->status->folder({ $folder_name => $new_status });
+            }
+    
+            print STDERR " * $folder_name ($unseen/$count)"
                 if $self->{'verbose'};
+    
+            # list of potential files to purge
+            my %purge = map { $_ => 1 } $storage->list($folder_name);
+    
+            $imap->examine($folder);
+            for my $msg ( $imap->messages ) {
+                # do not purge if still present in server
+                delete $purge{$msg};
+    
+                my $file = file( $folder_name, $msg );
+                next if $storage->find($file);
+    
+                my $fetch = $imap->fetch( $msg, 'RFC822' );
+                $storage->put( "$file" => $fetch->[2] );
+            }
+    
+            if (%purge) {
+                local $, = q{ };
+                print STDERR " (", keys %purge, ")"
+                    if $self->{'verbose'};
 
-            $self->storage->delete(@purge);
+                my @purge = map { file( $folder_name, $_ ) } keys %purge;
+                $storage->delete(@purge);
+            }
+    
+            print STDERR "\n"
+                if $self->{'verbose'};
         }
-
-        print STDERR "\n"
-            if $self->{'verbose'};
+    }
+    catch {
+        die "oops! error in IMAP transaction...\n\n" .
+            $imap->Results .
+            sprintf( "\ntime=%.2f\n", ( $^T - time ) / 60 );
     }
 }
 
@@ -187,7 +202,7 @@ App::backimap - backups imap mail
 
 =head1 VERSION
 
-version 0.00_07
+version 0.00_08
 
 =head1 SYNOPSIS
 
