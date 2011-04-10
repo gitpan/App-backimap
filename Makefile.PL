@@ -12,6 +12,7 @@ my %WriteMakefileArgs = (
   'ABSTRACT' => 'backups imap mail',
   'AUTHOR' => 'Alex Muntada <alexm@cpan.org>',
   'BUILD_REQUIRES' => {
+    'Test::Moose' => '0',
     'Test::More' => '0'
   },
   'CONFIGURE_REQUIRES' => {
@@ -24,28 +25,29 @@ my %WriteMakefileArgs = (
   'LICENSE' => 'perl',
   'NAME' => 'App::backimap',
   'PREREQ_PM' => {
+    'Data::Dump' => '0',
     'Encode' => '0',
     'Encode::IMAPUTF7' => '0',
     'English' => '0',
     'File::HomeDir' => '0',
-    'Getopt::Long' => '0',
     'Git::Wrapper' => '0',
     'IO::Prompt' => '0',
     'IO::Socket::SSL' => '0',
     'Mail::IMAPClient' => '0',
     'Moose' => '0',
     'Moose::Util::TypeConstraints' => '0',
+    'MooseX::Getopt' => '0',
     'MooseX::Storage' => '0',
     'MooseX::Types::Path::Class' => '0',
     'Path::Class' => '0',
-    'Pod::Usage' => '0',
+    'Term::ProgressBar' => '0',
     'Try::Tiny' => '0',
     'URI' => '0',
     'URI::Escape' => '0'
   },
-  'VERSION' => '0.00_08',
+  'VERSION' => '0.00_09',
   'test' => {
-    'TESTS' => 't/*.t'
+    'TESTS' => 't/*.t t/status/*.t'
   }
 );
 

@@ -19,6 +19,13 @@ has unseen => (
     required => 1,
 );
 
+
+has name => (
+    is => 'rw',
+    isa => 'Str',
+    required => 1,
+);
+
 1;
 
 __END__
@@ -30,7 +37,7 @@ App::backimap::Status::Folder - backimap folder status
 
 =head1 VERSION
 
-version 0.00_08
+version 0.00_09
 
 =head1 ATTRIBUTES
 
@@ -41,6 +48,10 @@ Total number of messages in a folder.
 =head2 unseen
 
 Number of unseen messages in a folder.
+
+=head2 name
+
+Name of the folder.
 
 =head1 AUTHOR
 

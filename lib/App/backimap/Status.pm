@@ -86,7 +86,7 @@ App::backimap::Status - manages backimap status
 
 =head1 VERSION
 
-version 0.00_08
+version 0.00_09
 
 =head1 ATTRIBUTES
 

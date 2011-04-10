@@ -156,6 +156,14 @@ sub delete {
 }
 
 
+sub move {
+    my $self = shift;
+    my ( $from, $to ) = @_;
+
+    $self->_git->mv( $from, $to );
+}
+
+
 sub commit {
     my $self = shift;
     my $change = shift;
@@ -188,7 +196,7 @@ App::backimap::Storage - manages backimap storage
 
 =head1 VERSION
 
-version 0.00_08
+version 0.00_09
 
 =head1 ATTRIBUTES
 
@@ -238,6 +246,10 @@ Adds files to storage with a text describing the change.
 =head2 delete( $file, ... )
 
 Removes files from storage.
+
+=head2 move
+
+Renames or moves files and directories from one place to another in storage.
 
 =head2 commit($change, [$file] ...)
 

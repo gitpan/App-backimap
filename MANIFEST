@@ -14,7 +14,13 @@ lib/App/backimap/Status.pm
 lib/App/backimap/Status/Folder.pm
 lib/App/backimap/Storage.pm
 t/author-critic.t
+t/backimap.t
+t/imap.t
 t/perlcriticrc
 t/release-cpan-changes.t
+t/release-kwalitee.t
 t/release-pod-coverage.t
 t/release-pod-syntax.t
+t/status.t
+t/status/folder.t
+t/storage.t

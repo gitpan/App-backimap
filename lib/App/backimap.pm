@@ -6,6 +6,10 @@ use strict;
 use warnings;
 
 use Moose;
+with 'MooseX::Getopt';
+
+use Moose::Util::TypeConstraints;
+use MooseX::Types::Path::Class;
 use App::backimap::Status;
 use App::backimap::Status::Folder;
 use App::backimap::IMAP;
@@ -13,71 +17,106 @@ use App::backimap::Storage;
 use Try::Tiny;
 use Encode::IMAPUTF7();
 use Encode();
+use Path::Class qw( file );
+use URI();
+use Data::Dump();
+use Term::ProgressBar();
 
 
-has status => (
+has uri => (
+    is => 'ro',
+    isa => 'Str',
+    documentation => 'URI for the remote IMAP folder.',
+    required => 1,
+);
+
+subtype 'ArrayOfUtf8'
+    => as 'ArrayRef';
+
+coerce 'ArrayOfUtf8'
+    => from 'ArrayRef'
+    => via { Encode::encode( 'utf-8', $_ ) };
+
+MooseX::Getopt::OptionTypeMap->add_option_type_to_map(
+    'ArrayOfUtf8' => '=s@'
+);
+
+has exclude => (
+    is => 'ro',
+    isa => 'ArrayOfUtf8',
+    documentation => 'Folder name to exclude from backup (e.g. spam).',
+    default => sub { [] },
+);
+
+has dir => (
+    is => 'ro',
+    isa => 'Path::Class::Dir',
+    coerce => 1,
+    documentation => 'Path to storage (default: ~/.backimap)',
+);
+
+has init => (
+    is => 'ro',
+    isa => 'Bool',
+    default => 0,
+    documentation => 'Initialize storage and setup backimap status.',
+);
+
+has clean => (
+    is => 'ro',
+    isa => 'Bool',
+    default => 0,
+    documentation => 'Clean up storage if dirty.',
+);
+
+has verbose => (
+    is => 'ro',
+    isa => 'Bool',
+    default => 0,
+    documentation => 'Enable verbose messages.',
+);
+
+
+has _status => (
+    accessor => 'status',
     is => 'rw',
     isa => 'App::backimap::Status',
 );
 
 
-has imap => (
+has _imap => (
+    accessor => 'imap',
     is => 'rw',
     isa => 'App::backimap::IMAP',
 );
 
 
-has storage => (
+has _storage => (
+    accessor => 'storage',
     is => 'rw',
     isa => 'App::backimap::Storage',
 );
 
-use Getopt::Long         qw( GetOptionsFromArray );
-use Pod::Usage;
-use URI;
-use Path::Class qw( file );
 
+sub is_excluded {
+    my $self = shift;
+    my ($folder) = @_;
 
-sub new {
-    my ( $class, @argv ) = @_;
-
-    my %opt = (
-        help    => 0,
-        verbose => 0,
-        dir     => undef,
-        init    => 0,
-        clean   => 0,
-    );
-
-    GetOptionsFromArray(
-        \@argv,
-        \%opt,
-
-        'help|h',
-        'verbose|v+',
-        'dir=s',
-        'init!',
-        'clean!',
-    )
-        or __PACKAGE__->usage();
-
-    $opt{'args'} = \@argv;
-
-    return bless \%opt, $class;
+    return ! !grep $_ eq $folder, @{ $self->exclude };
 }
 
 
 sub setup {
-    my ( $self, $str ) = @_;
+    my $self = shift;
 
     my $storage = App::backimap::Storage->new(
-        dir   => $self->{'dir'},
-        init  => $self->{'init'},
-        clean => $self->{'clean'},
+        dir   => $self->dir,
+        init  => $self->init,
+        clean => $self->clean,
     );
     $self->storage($storage);
 
-    my $uri  = URI->new($str);
+    my $uri  = URI->new( $self->uri );
     my $imap = App::backimap::IMAP->new( uri => $uri );
     $self->imap($imap);
 
@@ -102,37 +141,74 @@ sub backup {
                     : $imap->folders;
 
     print STDERR "Examining folders...\n"
-        if $self->{'verbose'};
+        if $self->verbose;
 
     try {
         for my $folder (@folder_list) {
             my $folder_name = Encode::encode( 'utf-8', Encode::decode( 'imap-utf-7', $folder ) );
+            next if $self->is_excluded($folder_name);
+
             my $count  = $imap->message_count($folder);
             next unless defined $count;
-    
+
             my $unseen = $imap->unseen_count($folder);
+
+            my $folder_id = $imap->uidvalidity($folder);
     
-            if ( $status_of && exists $status_of->{$folder_name} ) {
-                $status_of->{$folder_name}->count($count);
-                $status_of->{$folder_name}->unseen($unseen);
+            my $new_status = App::backimap::Status::Folder->new(
+                count => $count,
+                unseen => $unseen,
+                name => $folder_name,
+            );
+
+            if ( !$status_of ) {
+                $self->status->folder({ $folder_id => $new_status });
+                $status_of = $self->status->folder;
+            }
+            elsif ( !exists $status_of->{$folder_id} ) {
+                $status_of->{$folder_id} = $new_status;
             }
             else {
-                my $new_status = App::backimap::Status::Folder->new(
-                    count => $count,
-                    unseen => $unseen,
-                );
-    
-                $self->status->folder({ $folder_name => $new_status });
+                $status_of->{$folder_id}->count($count);
+                $status_of->{$folder_id}->unseen($unseen);
+
+                if ( $folder_name ne $status_of->{$folder_id}->name ) {
+                    $storage->move( $status_of->{$folder_id}->name, $folder_name );
+                    $status_of->{$folder_id}->name($folder_name);
+                }
             }
-    
-            print STDERR " * $folder_name ($unseen/$count)"
-                if $self->{'verbose'};
+
+            my $progress_update = 0;
+            my $progress;
+
+            if ( $self->verbose ) {
+                my $text = " * $folder_name ($unseen/$count)";
+
+                if ( $count > 0 ) {
+                    $progress = Term::ProgressBar->new({
+                        name => $text,
+                        count => $count,
+                        ETA => 'linear',
+                        fh => \*STDERR,
+                        remove => 0,
+                    });
+                }
+                else {
+                    print STDERR $text;
+                }
+            }
+
+            $progress->update($progress_update++)
+                if $self->verbose && $count > 0;
     
             # list of potential files to purge
             my %purge = map { $_ => 1 } $storage->list($folder_name);
     
             $imap->examine($folder);
             for my $msg ( $imap->messages ) {
+                $progress->update($progress_update++)
+                    if $self->verbose;
+
                 # do not purge if still present in server
                 delete $purge{$msg};
     
@@ -142,35 +218,43 @@ sub backup {
                 my $fetch = $imap->fetch( $msg, 'RFC822' );
                 $storage->put( "$file" => $fetch->[2] );
             }
+
+            $progress->update($count)
+                if $self->verbose && $count > 0;
     
             if (%purge) {
                 local $, = q{ };
                 print STDERR " (", keys %purge, ")"
-                    if $self->{'verbose'};
+                    if $self->verbose;
 
                 my @purge = map { file( $folder_name, $_ ) } keys %purge;
                 $storage->delete(@purge);
             }
     
             print STDERR "\n"
-                if $self->{'verbose'};
+                if $self->verbose;
         }
     }
     catch {
-        die "oops! error in IMAP transaction...\n\n" .
-            $imap->Results .
-            sprintf( "\ntime=%.2f\n", ( $^T - time ) / 60 );
+        if ( $imap->LastError ) {
+            print STDERR "OOPS! Error in IMAP transaction... ",
+                         $imap->LastError,
+                         "\n\n",
+                         Data::Dump::pp( $imap->Results );
+        }
+        elsif ( $_ ne '' ) {
+            print STDERR "OOPS! $_";
+        }
+
+        die sprintf( "\ntime=%.2f\n", ( $^T - time ) / 60 );
     }
 }
 
 
 sub run {
-    my ($self) = @_;
+    my $self = shift;
 
-    my @args = @{ $self->{'args'} };
-    $self->usage unless @args == 1;
-
-    $self->setup(@args);
+    $self->setup();
 
     my $start = time();
     $self->backup();
@@ -181,14 +265,7 @@ sub run {
     $self->storage->commit($message);
 
     printf STDERR "$message\n"
-        if $self->{'verbose'};
-}
-
-
-sub usage {
-    my ($self) = @_;
-
-    pod2usage( verbose => 0, exitval => 1 );
+        if $self->verbose;
 }
 
 1;
@@ -202,12 +279,12 @@ App::backimap - backups imap mail
 
 =head1 VERSION
 
-version 0.00_08
+version 0.00_09
 
 =head1 SYNOPSIS
 
     use App::backimap;
-    App::backimap->new(@ARGV)->run();
+    App::backimap->new_with_options()->run();
 
 =head1 ATTRIBUTES
 
@@ -225,9 +302,9 @@ Storage backend where files and messages are stored.
 
 =head1 METHODS
 
-=head2 new
+=head2 is_excluded($folder)
 
-Creates a new program instance with command line arguments.
+Returns boolean indicating that $folder is on the excluded list of folders.
 
 =head2 setup
 
@@ -241,9 +318,29 @@ Perform IMAP folder backup recursively.
 
 Parses command line arguments and starts the program.
 
-=head2 usage
+=head1 OPTIONS
 
-Shows an usage summary.
+=over 4
+
+=item --uri STRING
+
+For instance: imaps://user@example.org@imap.example.org/folder
+
+=item --exclude STRING
+
+Folder name to exclude from backup (e.g. spam)
+
+=item --dir PATH
+
+Defaults to: ~/.backimap
+
+=item --init
+
+=item --clean
+
+=item --verbose
+
+=back
 
 =head1 AUTHOR
 
