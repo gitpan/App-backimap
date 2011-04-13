@@ -13,7 +13,8 @@ my %WriteMakefileArgs = (
   'AUTHOR' => 'Alex Muntada <alexm@cpan.org>',
   'BUILD_REQUIRES' => {
     'Test::Moose' => '0',
-    'Test::More' => '0'
+    'Test::More' => '0',
+    'Test::TestCoverage' => '0'
   },
   'CONFIGURE_REQUIRES' => {
     'ExtUtils::MakeMaker' => '6.31'
@@ -33,6 +34,7 @@ my %WriteMakefileArgs = (
     'Git::Wrapper' => '0',
     'IO::Prompt' => '0',
     'IO::Socket::SSL' => '0',
+    'JSON::Any' => '0',
     'Mail::IMAPClient' => '0',
     'Moose' => '0',
     'Moose::Util::TypeConstraints' => '0',
@@ -45,7 +47,7 @@ my %WriteMakefileArgs = (
     'URI' => '0',
     'URI::Escape' => '0'
   },
-  'VERSION' => '0.00_09',
+  'VERSION' => '0.00_10',
   'test' => {
     'TESTS' => 't/*.t t/status/*.t'
   }

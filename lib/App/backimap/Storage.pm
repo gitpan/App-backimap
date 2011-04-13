@@ -196,7 +196,7 @@ App::backimap::Storage - manages backimap storage
 
 =head1 VERSION
 
-version 0.00_09
+version 0.00_10
 
 =head1 ATTRIBUTES
 

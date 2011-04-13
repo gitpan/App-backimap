@@ -279,7 +279,7 @@ App::backimap - backups imap mail
 
 =head1 VERSION
 
-version 0.00_09
+version 0.00_10
 
 =head1 SYNOPSIS
 

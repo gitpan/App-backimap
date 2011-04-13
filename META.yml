@@ -5,10 +5,11 @@ author:
 build_requires:
   Test::Moose: 0
   Test::More: 0
+  Test::TestCoverage: 0
 configure_requires:
   ExtUtils::MakeMaker: 6.31
 dynamic_config: 0
-generated_by: 'Dist::Zilla version 4.200004, CPAN::Meta::Converter version 2.110420'
+generated_by: 'Dist::Zilla version 4.200004, CPAN::Meta::Converter version 2.110580'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -23,6 +24,7 @@ requires:
   Git::Wrapper: 0
   IO::Prompt: 0
   IO::Socket::SSL: 0
+  JSON::Any: 0
   Mail::IMAPClient: 0
   Moose: 0
   Moose::Util::TypeConstraints: 0
@@ -36,4 +38,4 @@ requires:
   URI::Escape: 0
 resources:
   repository: git://github.com/alexm/App-backimap.git
-version: 0.00_09
+version: 0.00_10

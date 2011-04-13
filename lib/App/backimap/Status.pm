@@ -4,6 +4,8 @@ package App::backimap::Status;
 use Moose;
 use MooseX::Storage;
 with Storage( 'format' => 'JSON' );
+# Storage prereq
+use JSON::Any();
 
 use English qw( -no_match_vars );
 
@@ -73,6 +75,8 @@ sub save {
 
     my $json = $self->freeze();
     $self->storage->put( $FILENAME => $json );
+
+    return 1;
 }
 
 1;
@@ -86,7 +90,7 @@ App::backimap::Status - manages backimap status
 
 =head1 VERSION
 
-version 0.00_09
+version 0.00_10
 
 =head1 ATTRIBUTES
 
@@ -115,6 +119,9 @@ Object to use as the storage backend for status.
 =head2 save
 
 Save status to storage backend.
+
+Returns true if status has actually a storage and saving was successful
+or false otherwise.
 
 =for Pod::Coverage BUILD
 
