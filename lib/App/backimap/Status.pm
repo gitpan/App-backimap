@@ -45,6 +45,7 @@ has storage => (
 
 my $FILENAME = 'backimap.json';
 
+# Extra status initialization is not documented in POD.
 
 sub BUILD {
     my $self = shift;
@@ -90,7 +91,7 @@ App::backimap::Status - manages backimap status
 
 =head1 VERSION
 
-version 0.00_10
+version 0.00_11
 
 =head1 ATTRIBUTES
 
@@ -116,7 +117,7 @@ Object to use as the storage backend for status.
 
 =head1 METHODS
 
-=head2 save
+=head2 save()
 
 Save status to storage backend.
 
@@ -124,8 +125,6 @@ Returns true if status has actually a storage and saving was successful
 or false otherwise.
 
 =for Pod::Coverage BUILD
-
-Extra status initialization is not documented.
 
 =head1 AUTHOR
 

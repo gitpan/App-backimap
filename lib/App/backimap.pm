@@ -69,6 +69,13 @@ has clean => (
     documentation => 'Clean up storage if dirty.',
 );
 
+has resume => (
+    is => 'ro',
+    isa => 'Bool',
+    default => 0,
+    documentation => 'Resume previous failed backup.',
+);
+
 has verbose => (
     is => 'ro',
     isa => 'Bool',
@@ -110,9 +117,10 @@ sub setup {
     my $self = shift;
 
     my $storage = App::backimap::Storage->new(
-        dir   => $self->dir,
-        init  => $self->init,
-        clean => $self->clean,
+        dir    => $self->dir,
+        init   => $self->init,
+        clean  => $self->clean,
+        resume => $self->resume,
     );
     $self->storage($storage);
 
@@ -279,7 +287,7 @@ App::backimap - backups imap mail
 
 =head1 VERSION
 
-version 0.00_10
+version 0.00_11
 
 =head1 SYNOPSIS
 
@@ -302,19 +310,19 @@ Storage backend where files and messages are stored.
 
 =head1 METHODS
 
-=head2 is_excluded($folder)
+=head2 is_excluded( $folder )
 
 Returns boolean indicating that $folder is on the excluded list of folders.
 
-=head2 setup
+=head2 setup()
 
 Setups storage, IMAP connection and backimap status.
 
-=head2 backup
+=head2 backup()
 
 Perform IMAP folder backup recursively.
 
-=head2 run
+=head2 run()
 
 Parses command line arguments and starts the program.
 
@@ -337,6 +345,8 @@ Defaults to: ~/.backimap
 =item --init
 
 =item --clean
+
+=item --resume
 
 =item --verbose
 
