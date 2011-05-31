@@ -16,7 +16,7 @@ my %WriteMakefileArgs = (
     'Test::MockModule' => '0',
     'Test::Moose' => '0',
     'Test::More' => '0',
-    'Test::TestCoverage' => '0'
+    'Test::TestCoverage' => '0.11'
   },
   'CONFIGURE_REQUIRES' => {
     'ExtUtils::MakeMaker' => '6.30'
@@ -33,7 +33,7 @@ my %WriteMakefileArgs = (
     'Encode::IMAPUTF7' => '0',
     'English' => '0',
     'File::HomeDir' => '0',
-    'Git::Wrapper' => '0',
+    'Git::Wrapper' => '0.014',
     'IO::Prompt' => '0',
     'IO::Socket::SSL' => '0',
     'JSON::Any' => '0',
@@ -51,7 +51,7 @@ my %WriteMakefileArgs = (
     'URI::imap' => '0',
     'URI::imaps' => '0'
   },
-  'VERSION' => '0.00_11',
+  'VERSION' => '0.00_12',
   'test' => {
     'TESTS' => 't/*.t t/status/*.t'
   }

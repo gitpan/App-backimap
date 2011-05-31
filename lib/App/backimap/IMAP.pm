@@ -1,4 +1,10 @@
+use strict;
+use warnings;
+
 package App::backimap::IMAP;
+BEGIN {
+  $App::backimap::IMAP::VERSION = '0.00_12';
+}
 # ABSTRACT: manages IMAP connections
 
 use Moose;
@@ -135,6 +141,9 @@ sub _build_client {
 # FIXME: URI::imaps does not override secure method with a true value
 #        https://rt.cpan.org/Ticket/Display.html?id=65679
 package URI::imaps;
+BEGIN {
+  $URI::imaps::VERSION = '0.00_12';
+}
 
 sub secure { 1 }
 
@@ -149,7 +158,7 @@ App::backimap::IMAP - manages IMAP connections
 
 =head1 VERSION
 
-version 0.00_11
+version 0.00_12
 
 =head1 ATTRIBUTES
 

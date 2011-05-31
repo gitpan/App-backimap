@@ -1,4 +1,10 @@
+use strict;
+use warnings;
+
 package App::backimap::Status;
+BEGIN {
+  $App::backimap::Status::VERSION = '0.00_12';
+}
 # ABSTRACT: manages backimap status
 
 use Moose;
@@ -91,7 +97,7 @@ App::backimap::Status - manages backimap status
 
 =head1 VERSION
 
-version 0.00_11
+version 0.00_12
 
 =head1 ATTRIBUTES
 

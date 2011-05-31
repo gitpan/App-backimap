@@ -1,4 +1,10 @@
+use strict;
+use warnings;
+
 package App::backimap::Storage;
+BEGIN {
+  $App::backimap::Storage::VERSION = '0.00_12';
+}
 # ABSTRACT: manages backimap storage
 
 use Moose;
@@ -207,6 +213,8 @@ sub reset {
     _git_reset( shift->_git );
 }
 
+# Required methods in status for MooseX::Storage that don't perform any action
+# since the storage backend does not support serialization.
 
 sub pack   { }
 sub unpack { }
@@ -222,7 +230,7 @@ App::backimap::Storage - manages backimap storage
 
 =head1 VERSION
 
-version 0.00_11
+version 0.00_12
 
 =head1 ATTRIBUTES
 
@@ -297,9 +305,6 @@ Returns storage back to last committed status.
 =for Pod::Coverage BUILD
 
 =for Pod::Coverage pack unpack
-
-Required methods in status for MooseX::Storage that don't perform any action
-since the storage backend does not support serialization.
 
 =head1 AUTHOR
 
