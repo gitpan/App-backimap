@@ -3,7 +3,7 @@ use warnings;
 
 package App::backimap::Status;
 BEGIN {
-  $App::backimap::Status::VERSION = '0.00_12';
+  $App::backimap::Status::VERSION = '0.00_13';
 }
 # ABSTRACT: manages backimap status
 
@@ -12,6 +12,7 @@ use MooseX::Storage;
 with Storage( 'format' => 'JSON' );
 # Storage prereq
 use JSON::Any();
+use version();
 
 use English qw( -no_match_vars );
 
@@ -63,8 +64,13 @@ sub BUILD {
     }
     else {
         my $json = $self->storage->get($FILENAME);
-        my $status = App::backimap::Status->thaw($json);
 
+        # Do not check package if version is alpha (CPAN: #68358)
+        my %options;
+        %options = ( check_version => '' )
+            if version->parse( $self->VERSION )->is_alpha();
+
+        my $status = App::backimap::Status->thaw( $json, %options );
         die "IMAP credentials do not match saved status\n"
             if $status->user ne $self->user ||
                 $status->server ne $self->server;
@@ -97,7 +103,7 @@ App::backimap::Status - manages backimap status
 
 =head1 VERSION
 
-version 0.00_12
+version 0.00_13
 
 =head1 ATTRIBUTES
 

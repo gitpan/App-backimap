@@ -3,7 +3,7 @@ use warnings;
 
 package App::backimap;
 BEGIN {
-  $App::backimap::VERSION = '0.00_12';
+  $App::backimap::VERSION = '0.00_13';
 }
 # ABSTRACT: backups imap mail
 
@@ -84,6 +84,13 @@ has incremental => (
     isa => 'Bool',
     default => 0,
     documentation => 'Perform an incremental backup since last time.',
+);
+
+has explode => (
+    is => 'ro',
+    isa => 'Bool',
+    default => 0,
+    documentation => 'Explode message MIME parts (e.g. attachments).',
 );
 
 has verbose => (
@@ -244,7 +251,8 @@ sub backup {
                 next if $storage->find($file);
     
                 my $fetch = $imap->fetch( $msg, 'RFC822' );
-                $storage->put( "$file" => $fetch->[2] );
+                my $op = $self->explode ? 'explode' : 'put';
+                $storage->$op( "$file" => $fetch->[2] );
             }
 
             $progress->update($msg_count)
@@ -307,7 +315,7 @@ App::backimap - backups imap mail
 
 =head1 VERSION
 
-version 0.00_12
+version 0.00_13
 
 =head1 SYNOPSIS
 
@@ -369,6 +377,8 @@ Defaults to: ~/.backimap
 =item --resume
 
 =item --incremental
+
+=item --explode
 
 =item --verbose
 

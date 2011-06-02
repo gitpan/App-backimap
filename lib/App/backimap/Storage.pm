@@ -3,7 +3,7 @@ use warnings;
 
 package App::backimap::Storage;
 BEGIN {
-  $App::backimap::Storage::VERSION = '0.00_12';
+  $App::backimap::Storage::VERSION = '0.00_13';
 }
 # ABSTRACT: manages backimap storage
 
@@ -12,6 +12,10 @@ use Moose::Util::TypeConstraints;
 use MooseX::Types::Path::Class;
 use File::HomeDir;
 use Git::Wrapper;
+use IO::Scalar;
+use MIME::Parser;
+use Encode;
+use Storable;
 
 
 has dir => (
@@ -126,7 +130,7 @@ sub BUILD {
 sub find {
     my $self = shift;
 
-    my @found = grep { -f $self->dir->file($_) } @_;
+    my @found = grep { -e $self->dir->file($_) } @_;
     return @found;
 }
 
@@ -155,21 +159,61 @@ sub get {
 
 sub put {
     my $self = shift;
-    my %files = @_;
-    my $git = $self->_git;
-    my $dir = $self->dir;
 
-    for my $filename ( keys %files ) {
-        my $filepath = $dir->file($filename);
+    my $op = sub {
+        my $self = shift;
+        my ( $filename, $content_ref ) = @_;
+
+        my $filepath = $self->dir->file($filename);
         $filepath->dir->mkpath()
             unless -d $filepath->dir;
 
         my $file = $filepath->open('w')
             or die "cannot open $filepath: $!";
 
-        $file->print( $files{$filename} );
+        $file->print($$content_ref);
         $file->close();
+    };
 
+    $self->_put_files( $op, @_ );
+}
+
+
+sub explode {
+    my $self = shift;
+
+    my $op = sub {
+        my $self = shift;
+        my ( $dir, $content_ref ) = @_;
+
+        my $filepath = $self->dir->subdir($dir);
+        $filepath->mkpath()
+            unless -d $filepath;
+
+        my $parser = MIME::Parser->new();
+        $parser->output_dir( Encode::decode( 'UTF-8', $filepath ) );
+        $parser->decode_bodies(1);
+        $parser->extract_nested_messages(1);
+        $parser->extract_uuencode(1);
+        $parser->ignore_errors(1);
+
+        my $entity = $parser->parse( IO::Scalar->new($content_ref) );
+
+        my $filename = $filepath->file('__MIME__');
+        Storable::nstore( $entity, $filename )
+            or die "cannot open $filename: $!";
+    };
+
+    $self->_put_files( $op, @_ );
+}
+
+sub _put_files {
+    my $self = shift;
+    my ( $op, %content_for ) = @_;
+    my $git = $self->_git;
+
+    for my $filename ( keys %content_for ) {
+        $self->$op( $filename, \$content_for{$filename} );
         $git->add($filename);
     }
 }
@@ -230,7 +274,7 @@ App::backimap::Storage - manages backimap storage
 
 =head1 VERSION
 
-version 0.00_12
+version 0.00_13
 
 =head1 ATTRIBUTES
 
@@ -281,7 +325,11 @@ Retrieves file from storage.
 
 =head2 put( $file => $content, ... )
 
-Adds files to storage with a text describing the change.
+Adds files to storage.
+
+=head2 explode( $dir => $content, ... )
+
+Explodes content MIME parts in several files and adds them to storage.
 
 =head2 delete( $file, ... )
 

@@ -3,7 +3,7 @@ use warnings;
 
 package App::backimap::IMAP;
 BEGIN {
-  $App::backimap::IMAP::VERSION = '0.00_12';
+  $App::backimap::IMAP::VERSION = '0.00_13';
 }
 # ABSTRACT: manages IMAP connections
 
@@ -142,7 +142,7 @@ sub _build_client {
 #        https://rt.cpan.org/Ticket/Display.html?id=65679
 package URI::imaps;
 BEGIN {
-  $URI::imaps::VERSION = '0.00_12';
+  $URI::imaps::VERSION = '0.00_13';
 }
 
 sub secure { 1 }
@@ -158,7 +158,7 @@ App::backimap::IMAP - manages IMAP connections
 
 =head1 VERSION
 
-version 0.00_12
+version 0.00_13
 
 =head1 ATTRIBUTES
 

@@ -3,7 +3,7 @@ use warnings;
 
 package App::backimap::Status::Folder;
 BEGIN {
-  $App::backimap::Status::Folder::VERSION = '0.00_12';
+  $App::backimap::Status::Folder::VERSION = '0.00_13';
 }
 # ABSTRACT: backimap folder status
 
@@ -43,7 +43,7 @@ App::backimap::Status::Folder - backimap folder status
 
 =head1 VERSION
 
-version 0.00_12
+version 0.00_13
 
 =head1 ATTRIBUTES
 

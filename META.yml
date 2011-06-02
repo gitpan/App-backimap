@@ -11,7 +11,7 @@ build_requires:
 configure_requires:
   ExtUtils::MakeMaker: 6.30
 dynamic_config: 0
-generated_by: 'Dist::Zilla version 4.200006, CPAN::Meta::Converter version 2.110580'
+generated_by: 'Dist::Zilla version 4.200006, CPAN::Meta::Converter version 2.110420'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -25,8 +25,10 @@ requires:
   File::HomeDir: 0
   Git::Wrapper: 0.014
   IO::Prompt: 0
+  IO::Scalar: 0
   IO::Socket::SSL: 0
   JSON::Any: 0
+  MIME::Parser: 0
   Mail::IMAPClient: 0
   Moose: 0
   Moose::Util::TypeConstraints: 0
@@ -34,12 +36,14 @@ requires:
   MooseX::Storage: 0
   MooseX::Types::Path::Class: 0
   Path::Class: 0
+  Storable: 0
   Term::ProgressBar: 0
   Try::Tiny: 0
   URI: 0
   URI::Escape: 0
   URI::imap: 0
   URI::imaps: 0
+  version: 0
 resources:
   repository: http://github.com/alexm/App-backimap.git
-version: 0.00_12
+version: 0.00_13
